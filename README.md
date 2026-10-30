@@ -26,7 +26,8 @@ streamlit run app.py
 
 Then:
 1. Get a **free** Gemini API key at https://aistudio.google.com (2 minutes, no card)
-2. Paste the key in the sidebar of the app
+2. Add it as the `GEMINI_API_KEY` secret (Streamlit Cloud) or in a `.env` file (local run).
+   The app never asks for the key in the interface, so it cannot be misused.
 3. Upload 1–2 PDFs, click **Process documents**
 4. Ask questions in the chat box
 
@@ -47,8 +48,10 @@ with a citation `[Document: name, Page: N]` under each fact.
 
 1. Push this folder to GitHub
 2. Go to https://share.streamlit.io → **New app** → pick your repo → `app.py`
-3. In the app settings, add a secret: `GEMINI_API_KEY = your_key_here`
-   (or paste the key in the sidebar each time — never commit the real key)
+3. In **Advanced settings → Secrets**, add: `GEMINI_API_KEY = "your_key_here"`
+4. Deploy. Streamlit redeploys automatically on every future push to `main`.
+
+The key lives only in secrets — it is never shown in the app interface.
 
 ## Honesty test (great for the demo)
 

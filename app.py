@@ -111,6 +111,56 @@ st.markdown(
         width: 100%;
         visibility: hidden;
     }
+
+    /* 1. Hide Main Menu (three dots) */
+    #MainMenu {
+        visibility: hidden !important;
+        display: none !important;
+    }
+
+    /* 2. Hide Top Header clutter (Fork, Deploy, GitHub icon) while preserving sidebar toggle (>>) */
+    header[data-testid="stHeader"] {
+        background: transparent !important;
+    }
+    header [data-testid="stToolbar"],
+    header [data-testid="stHeaderActionElements"],
+    header a,
+    .stDeployButton,
+    header a[href*="github.com"],
+    [data-testid="stDecoration"] {
+        visibility: hidden !important;
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        overflow: hidden !important;
+        pointer-events: none !important;
+    }
+    [data-testid="collapsedControl"] {
+        visibility: visible !important;
+        display: flex !important;
+    }
+
+    /* 3. Hide Footer ("Made with Streamlit") */
+    footer, [data-testid="stFooter"] {
+        visibility: hidden !important;
+        display: none !important;
+    }
+
+    /* 4. Hide Streamlit Cloud viewer toolbar (avatar, red crown button, manage app) */
+    [class*="viewerBadge"],
+    [class*="manageApp"],
+    [data-testid="manage-app-button"],
+    #manage-app-button,
+    div[class*="ProfileButton"],
+    div[class*="floatingButton"],
+    div[class*="ViewerBadge"],
+    div[class*="HostBadge"],
+    div[class*="ConnectionStatus"] {
+        visibility: hidden !important;
+        display: none !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -460,7 +510,7 @@ if user_input and not is_busy:
     st.session_state.is_generating = False
     st.rerun()
 
-# Auto-scroll directly inside the page to keep latest responses in view
+# Auto-scroll directly inside the page and strip Streamlit Cloud branding badges
 st.html(
     """
     <div id="chat-bottom-anchor"></div>
@@ -485,6 +535,54 @@ st.html(
         setTimeout(scrollDown, 150);
         setTimeout(scrollDown, 300);
         setTimeout(scrollDown, 600);
+
+        function removeCloudBadges() {
+            var selectors = [
+                '#MainMenu',
+                'footer',
+                '[data-testid="stFooter"]',
+                '[data-testid="stDecoration"]',
+                '[data-testid="stToolbar"]',
+                '[data-testid="stHeaderActionElements"]',
+                '.stDeployButton',
+                'header a',
+                '[data-testid="manage-app-button"]',
+                '#manage-app-button',
+                '[class*="viewerBadge"]',
+                '[class*="ViewerBadge"]',
+                '[class*="manageApp"]',
+                '[class*="ProfileButton"]',
+                '[class*="floatingButton"]',
+                '[class*="HostBadge"]'
+            ];
+            var docs = [document];
+            try {
+                if (window.parent && window.parent.document && window.parent.document !== document) {
+                    docs.push(window.parent.document);
+                }
+            } catch(e) {}
+            try {
+                if (window.top && window.top.document && !docs.includes(window.top.document)) {
+                    docs.push(window.top.document);
+                }
+            } catch(e) {}
+
+            docs.forEach(function(doc) {
+                selectors.forEach(function(sel) {
+                    try {
+                        var elements = doc.querySelectorAll(sel);
+                        elements.forEach(function(el) {
+                            el.style.setProperty('display', 'none', 'important');
+                            el.style.setProperty('visibility', 'hidden', 'important');
+                            el.style.setProperty('opacity', '0', 'important');
+                            el.style.setProperty('pointer-events', 'none', 'important');
+                        });
+                    } catch(e) {}
+                });
+            });
+        }
+        removeCloudBadges();
+        setInterval(removeCloudBadges, 800);
     })();
     </script>
     """

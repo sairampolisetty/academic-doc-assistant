@@ -1,4 +1,22 @@
-chroma_db/
-__pycache__/
+# Environment & Secrets
 .env
+.env.local
+.streamlit/secrets.toml
+
+# Python Cache & Virtual Environments
+__pycache__/
 *.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+
+# Vector Stores & Large Knowledge Bases
+chroma_db/
+knowledge_base.npz
+*.npz
+
+# OS metadata
+.DS_Store
+Thumbs.db

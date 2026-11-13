@@ -121,11 +121,14 @@ st.markdown(
     /* 2. Hide Top Header clutter (Fork, Deploy, GitHub icon) while preserving sidebar toggle (>>) */
     header[data-testid="stHeader"] {
         background: transparent !important;
+        display: block !important;
+        visibility: visible !important;
     }
     header [data-testid="stToolbar"],
     header [data-testid="stHeaderActionElements"],
     header a,
     .stDeployButton,
+    .stAppDeployButton,
     header a[href*="github.com"],
     [data-testid="stDecoration"] {
         visibility: hidden !important;
@@ -146,7 +149,11 @@ st.markdown(
         display: none !important;
     }
 
-    /* 4. Hide Streamlit Cloud viewer toolbar (avatar, red crown button, manage app) */
+    /* 4. Hide Streamlit Cloud viewer toolbar & badges (avatar, red crown button, manage app) */
+    .viewerBadge_container__1QSob,
+    .styles_viewerBadge__1yB5_,
+    .viewerBadge_link__1S137,
+    .viewerBadge_text__1JaDK,
     [class*="viewerBadge"],
     [class*="manageApp"],
     [data-testid="manage-app-button"],
@@ -155,7 +162,8 @@ st.markdown(
     div[class*="floatingButton"],
     div[class*="ViewerBadge"],
     div[class*="HostBadge"],
-    div[class*="ConnectionStatus"] {
+    div[class*="ConnectionStatus"],
+    [data-testid="stStatusWidget"] {
         visibility: hidden !important;
         display: none !important;
         opacity: 0 !important;
@@ -516,6 +524,17 @@ st.html(
     <div id="chat-bottom-anchor"></div>
     <script>
     (function() {
+        // Automatically ensure embed=true is active on Streamlit Cloud to suppress host chrome and manage-app overlays
+        try {
+            if (window.location && window.location.hostname && window.location.hostname.includes('streamlit.app')) {
+                if (!window.location.search.includes('embed=true')) {
+                    var sep = window.location.search ? '&' : '?';
+                    window.location.replace(window.location.pathname + window.location.search + sep + 'embed=true' + window.location.hash);
+                    return;
+                }
+            }
+        } catch(e) {}
+
         function scrollDown() {
             var el = document.getElementById('chat-bottom-anchor');
             if (el) {

@@ -118,11 +118,12 @@ st.markdown(
         display: none !important;
     }
 
-    /* 2. Hide Top Header clutter (Fork, Deploy, GitHub icon) while preserving sidebar toggle (>>) */
+    /* 2. Top Header & Mobile Sidebar Toggle */
     header[data-testid="stHeader"] {
         background: transparent !important;
         display: block !important;
         visibility: visible !important;
+        z-index: 1000 !important;
     }
     header [data-testid="stToolbar"],
     header [data-testid="stHeaderActionElements"],
@@ -141,6 +142,15 @@ st.markdown(
     [data-testid="collapsedControl"] {
         visibility: visible !important;
         display: flex !important;
+        opacity: 1 !important;
+        z-index: 999999 !important;
+        position: fixed !important;
+        top: 0.5rem !important;
+        left: 0.5rem !important;
+        background: rgba(30, 30, 30, 0.9) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        border-radius: 8px !important;
+        padding: 4px 6px !important;
     }
 
     /* 3. Hide Footer ("Made with Streamlit") */
@@ -222,6 +232,17 @@ def index_documents(files, key: str):
         st.session_state.active_docs = doc_names
         st.session_state.messages = []
         return True
+
+
+def load_sample_document(key: str) -> bool:
+    sample_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sample_docs", "attention_mechanism_study.pdf")
+    if os.path.exists(sample_path):
+        with open(sample_path, "rb") as f:
+            import io
+            buf = io.BytesIO(f.read())
+            buf.name = "attention_mechanism_study.pdf"
+            return index_documents([buf], key)
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -327,15 +348,9 @@ if load_sample:
     if not api_key:
         st.error("API key is not configured. Set GEMINI_API_KEY in .env.")
     else:
-        sample_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sample_docs", "attention_mechanism_study.pdf")
-        if os.path.exists(sample_path):
-            with open(sample_path, "rb") as f:
-                import io
-                buf = io.BytesIO(f.read())
-                buf.name = "attention_mechanism_study.pdf"
-                if index_documents([buf], api_key):
-                    st.success("Sample paper loaded.")
-                    st.rerun()
+        if load_sample_document(api_key):
+            st.success("Sample paper loaded.")
+            st.rerun()
         else:
             st.error("Sample document not found in sample_docs/.")
 
@@ -376,6 +391,31 @@ with col_h2:
             st.session_state.pending_prompt = None
             st.rerun()
 
+# Active document banner on the main screen
+if st.session_state.chunks:
+    doc_summary = ", ".join(st.session_state.active_docs)
+    col_doc_info, col_doc_switch = st.columns([3, 1])
+    with col_doc_info:
+        st.markdown(
+            f"<div style='background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); "
+            f"border-radius: 6px; padding: 0.45rem 0.75rem; font-size: 0.82rem; color: #bbb;'>"
+            f"Active: <strong>{doc_summary}</strong> ({len(st.session_state.chunks)} passages)"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+    with col_doc_switch:
+        with st.popover("Switch PDF"):
+            more_files = st.file_uploader(
+                "Upload new PDF",
+                type=["pdf"],
+                accept_multiple_files=True,
+                key="main_switch_pdf_uploader",
+            )
+            if st.button("Process & Replace", key="main_switch_process", disabled=not more_files, use_container_width=True):
+                if index_documents(more_files, api_key):
+                    st.success("New document loaded.")
+                    st.rerun()
+
 # Empty State: Clean welcome screen
 if not st.session_state.messages:
     st.markdown(
@@ -384,7 +424,37 @@ if not st.session_state.messages:
     )
 
     if not st.session_state.chunks:
-        st.info("To begin, upload a PDF in the sidebar or click 'Load sample'.")
+        st.markdown(
+            """
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.25rem;">
+                <h4 style="margin-top:0; margin-bottom: 0.35rem; font-size: 1.05rem;">Choose a document to start:</h4>
+                <p style="color: #888; font-size: 0.85rem; margin-bottom: 1rem;">Load the built-in research paper instantly, or upload any PDF from your device.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        col_m1, col_m2 = st.columns([1, 1])
+        with col_m1:
+            if st.button("Load sample paper", type="primary", use_container_width=True, key="main_load_sample_btn"):
+                if load_sample_document(api_key):
+                    st.rerun()
+                else:
+                    st.error("Sample document not found in sample_docs/.")
+        with col_m2:
+            st.caption("Auto-indexes the landmark *Attention is All You Need* paper.")
+
+        st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
+        with st.expander("Or upload your own PDF file", expanded=False):
+            main_uploaded_files = st.file_uploader(
+                "Choose PDF file(s)",
+                type=["pdf"],
+                accept_multiple_files=True,
+                key="main_welcome_pdf_uploader",
+            )
+            if st.button("Index and Start Chatting", type="secondary", disabled=not main_uploaded_files, use_container_width=True, key="main_welcome_process_btn"):
+                if index_documents(main_uploaded_files, api_key):
+                    st.success("Document indexed successfully.")
+                    st.rerun()
     else:
         st.markdown("**Suggested prompts:**")
         col_a, col_b = st.columns(2)
@@ -524,17 +594,6 @@ st.html(
     <div id="chat-bottom-anchor"></div>
     <script>
     (function() {
-        // Automatically ensure embed=true is active on Streamlit Cloud to suppress host chrome and manage-app overlays
-        try {
-            if (window.location && window.location.hostname && window.location.hostname.includes('streamlit.app')) {
-                if (!window.location.search.includes('embed=true')) {
-                    var sep = window.location.search ? '&' : '?';
-                    window.location.replace(window.location.pathname + window.location.search + sep + 'embed=true' + window.location.hash);
-                    return;
-                }
-            }
-        } catch(e) {}
-
         function scrollDown() {
             var el = document.getElementById('chat-bottom-anchor');
             if (el) {
